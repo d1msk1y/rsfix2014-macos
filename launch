@@ -1,0 +1,21 @@
+#!/bin/sh
+# RocksmithFix: Steam launch wrapper for Rocksmith 2014 on macOS 15.4+.
+# Fixes the crash on start and lets the game use a regular audio interface.
+# Steam launch options:  /full/path/to/RocksmithFix/launch %command%
+# See README.md.
+D="$(cd "$(dirname "$0")" && pwd)"
+STEAM="$HOME/Library/Application Support/Steam/Steam.AppBundle/Steam/Contents/MacOS"
+if [ ! -f "$STEAM/steamloader.dylib" ]; then
+  echo "steamloader.dylib not found in $STEAM" > "$D/dyldfix.log"; exit 1
+fi
+APP="$1"; shift
+case "$APP" in
+  *.app) BIN="$APP/Contents/MacOS/Rocksmith2014" ;;
+  *)     BIN="$APP" ;;
+esac
+export DYLD_INSERT_LIBRARIES="$D/rs_dyldfix.dylib:$STEAM/steamloader.dylib:$STEAM/gameoverlayrenderer.dylib"
+# Which interface input your guitar is plugged into (1 = first input)
+export RS_INPUT_CHANNEL="${RS_INPUT_CHANNEL:-1}"
+export SteamAppId="${SteamAppId:-221680}" SteamGameId="${SteamGameId:-221680}"
+cd "$(dirname "$BIN")"
+exec "$BIN" "$@"
